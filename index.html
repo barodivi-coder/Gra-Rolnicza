@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>VierCleanÓwno</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=46">
+</head>
+<body>
+
+<canvas id="game-canvas"></canvas>
+
+<!-- Vignette flash on losing a life -->
+<div id="danger-flash"></div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="lives">
+    <span class="life-icon">🐱</span>
+    <span class="life-icon">🐱</span>
+    <span class="life-icon">🐱</span>
+  </div>
+  <div id="score">
+    <span id="score-label">Zebrane graty</span>
+    <span id="score-value">0</span>
+  </div>
+</div>
+
+<!-- Speech bubble -->
+<div id="speech-wrap">
+  <div id="speech-bubble"></div>
+</div>
+
+<!-- Start screen -->
+<div id="start-screen" class="overlay">
+  <div class="panel">
+    <div class="eyebrow">Podkarpacka symulacja porządku</div>
+    <h1 class="title">Vier<span class="title-accent">Clean</span>Ówno</h1>
+    <p class="desc">
+      Pomóż Olkowi posprzątać łąkę z niepożądanych przedmiotów,
+      żeby mógł wywieźć je na płytę obornikową.
+      <br><strong>Ale uważaj! Nie przejedź kota!</strong>
+    </p>
+    <div class="controls-hint">
+      <div class="hint-item"><span class="key">W A S D</span> / <span class="key">strzałki</span> — jazda traktorem (komputer)</div>
+      <div class="hint-item">Joystick na dole ekranu — jazda traktorem (telefon)</div>
+      <div class="hint-item">Zbieraj dobre graty 👍 · Omijaj kota 🐱</div>
+    </div>
+    <button id="start-btn" class="btn btn-primary">Ruszaj w pole</button>
+  </div>
+</div>
+
+<!-- Game over screen -->
+<div id="gameover-screen" class="overlay hidden">
+  <div class="panel">
+    <div class="eyebrow">Koniec zmiany</div>
+    <h1 class="title title-small">GAME OVER</h1>
+    <p class="desc">
+      Kuuurrrrnaaa chata! Jak zwykle przejechaliśmy wszystkie lelawe koty!
+      Ale nie martw się, będą nowe! Rudy kocur już czeka na placu zabaw!
+    </p>
+    <div class="score-final">
+      Wynik: <span id="final-score">0</span> zebranych gratów
+    </div>
+    <button id="restart-btn" class="btn btn-primary">Zagraj ponownie</button>
+  </div>
+</div>
+
+<!-- Victory screen (after cleaning up all 3 plots) -->
+<div id="victory-screen" class="overlay hidden">
+  <div class="panel">
+    <div class="eyebrow">Koniec zmiany</div>
+    <h1 class="title title-victory">VICTORIA!</h1>
+    <p class="desc">
+      <strong>Podwórko posprzątane!</strong><br>
+      Olek: Zaoszczędziliśmy pieniążki na Rafale! Następnym razem już
+      bez mojej pomocy posprzątasz drogę gospodarczą. Widzimy się w Wiercanach!
+    </p>
+    <div class="score-final">
+      Wynik: <span id="victory-score">0</span> zebranych gratów
+    </div>
+    <button id="victory-restart-btn" class="btn btn-primary">Zagraj ponownie</button>
+  </div>
+</div>
+
+<!-- Big centered dialogue modal (pauses the game, advance with SPACE or tap) -->
+<div id="dialogue-modal" class="overlay hidden">
+  <div class="panel dialogue-panel">
+    <p id="dialogue-text" class="dialogue-text"></p>
+    <div class="dialogue-hint"><span class="key">SPACJA</span> lub dotknij, aby kontynuować</div>
+  </div>
+</div>
+
+<!-- Wybór przynęty na kunę (pauzuje grę) -->
+<div id="bait-modal" class="overlay hidden">
+  <div class="panel bait-panel">
+    <p class="dialogue-text">Olek: Co powinno ją skusić?</p>
+    <div id="bait-options" class="bait-options">
+      <button class="bait-btn" data-bait="chocolate"><span class="bait-icon">🍫</span><span class="bait-label">Czekolada</span></button>
+      <button class="bait-btn" data-bait="berries"><span class="bait-icon">🫐</span><span class="bait-label">Jagody</span></button>
+      <button class="bait-btn" data-bait="chips"><span class="bait-icon">🍟</span><span class="bait-label">Chipsy</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Podpowiedź do podpinania przyczepki -->
+<div id="hitch-hint" class="hidden">
+  <span id="hitch-hint-text">Cofnij do przyczepki (obok busa) i naciśnij P</span>
+  <button id="hitch-btn" class="key" type="button">P</button>
+</div>
+
+<!-- Touch controls (mobile) — virtual joystick -->
+<div id="joystick-zone">
+  <div id="joystick-base">
+    <div id="joystick-knob"></div>
+  </div>
+</div>
+
+
+<!-- Radio samochodowe w stylu lat 90. -->
+<div id="car-radio">
+  <div class="radio-body">
+    <div class="radio-top">
+      <div class="radio-brand">AUTO-RADIO</div>
+      <button id="radio-power" class="radio-power" title="Wł/Wył">POWER</button>
+    </div>
+    <div class="radio-display">
+      <span id="radio-text">-- OFF --</span>
+    </div>
+    <div class="radio-presets">
+      <button class="preset" data-station="0">1</button>
+      <button class="preset" data-station="1">2</button>
+      <button class="preset" data-station="2">3</button>
+      <button class="preset" data-station="3">4</button>
+    </div>
+    <div class="radio-knobs"><span class="knob"></span><span class="knob"></span></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="game.js?v=46"></script>
+</body>
+</html>

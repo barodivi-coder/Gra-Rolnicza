@@ -1,0 +1,618 @@
+:root{
+  --grass: #5FAE3E;
+  --grass-dark: #3E7A28;
+  --cream: #FBF6E9;
+  --wood: #8B5A2B;
+  --sun: #FFC145;
+  --danger: #E4572E;
+  --ink: #2E3B25;
+  --white-fence: #F7F5EF;
+  --display-font: 'Fredoka', sans-serif;
+  --body-font: 'Nunito', sans-serif;
+}
+
+*{ box-sizing: border-box; }
+
+html, body{
+  margin:0; padding:0;
+  width:100%;
+  height:100vh;
+  height:100dvh;
+  overflow:hidden;
+  background: var(--grass);
+  font-family: var(--body-font);
+  color: var(--ink);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game-canvas{
+  position:fixed;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  touch-action: none;
+}
+
+.hidden{ display:none !important; }
+
+/* ---------- Danger flash ---------- */
+#danger-flash{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background: radial-gradient(ellipse at center, rgba(228,87,46,0) 45%, rgba(228,87,46,0.55) 100%);
+  opacity:0;
+  z-index:15;
+  transition: opacity .15s ease-out;
+}
+#danger-flash.active{
+  opacity:1;
+  transition: opacity .05s ease-in;
+}
+
+/* ---------- HUD ---------- */
+#hud{
+  position:fixed;
+  top:0; left:0; right:0;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  padding: max(18px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) 0 max(22px, env(safe-area-inset-left));
+  z-index:10;
+  pointer-events:none;
+  font-family: var(--display-font);
+}
+
+#lives{
+  display:flex;
+  gap:8px;
+  background: rgba(251,246,233,0.85);
+  border: 3px solid var(--wood);
+  border-radius: 16px;
+  padding:8px 14px;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+}
+.life-icon{
+  font-size:26px;
+  filter: drop-shadow(0 2px 0 rgba(0,0,0,0.15));
+  transition: opacity .25s, transform .25s;
+}
+.life-icon.lost{
+  opacity:0.25;
+  filter: grayscale(1);
+  transform: scale(0.85) rotate(-15deg);
+}
+
+#score{
+  background: rgba(251,246,233,0.85);
+  border: 3px solid var(--wood);
+  border-radius: 16px;
+  padding:8px 16px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  line-height:1.1;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+}
+#score-label{
+  font-size:11px;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color: var(--grass-dark);
+  font-weight:700;
+  font-family: var(--body-font);
+}
+#score-value{
+  font-size:26px;
+  font-weight:700;
+  color: var(--ink);
+}
+
+/* ---------- Speech bubble ---------- */
+#speech-wrap{
+  position:fixed;
+  top:90px;
+  left:0; right:0;
+  display:flex;
+  justify-content:center;
+  z-index:12;
+  pointer-events:none;
+}
+#speech-bubble{
+  max-width:min(560px, 86vw);
+  background: var(--cream);
+  border:3px solid var(--wood);
+  border-radius: 20px;
+  padding:12px 20px;
+  font-family: var(--body-font);
+  font-weight:700;
+  font-size:16px;
+  color: var(--ink);
+  text-align:center;
+  box-shadow: 0 5px 0 rgba(0,0,0,0.18);
+  opacity:0;
+  transform: translateY(-14px) scale(0.9);
+  transition: opacity .25s ease, transform .25s ease;
+  position:relative;
+}
+#speech-bubble::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-14px;
+  transform: translateX(-50%);
+  border-width:14px 10px 0 10px;
+  border-style:solid;
+  border-color: var(--wood) transparent transparent transparent;
+}
+#speech-bubble.visible{
+  opacity:1;
+  transform: translateY(0) scale(1);
+}
+
+/* ---------- Overlays ---------- */
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.15), rgba(0,0,0,0) 60%),
+    linear-gradient(180deg, rgba(46,59,37,0.55), rgba(46,59,37,0.75));
+  padding: 24px;
+}
+
+.panel{
+  background: var(--cream);
+  border: 5px solid var(--wood);
+  border-radius: 28px;
+  max-width: 560px;
+  width:100%;
+  padding: 34px 36px 30px;
+  text-align:center;
+  box-shadow: 0 14px 0 rgba(0,0,0,0.2), 0 20px 40px rgba(0,0,0,0.35);
+}
+
+.eyebrow{
+  font-family: var(--body-font);
+  font-weight:800;
+  font-size:12px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color: var(--grass-dark);
+  margin-bottom:6px;
+}
+
+.title{
+  font-family: var(--display-font);
+  font-weight:700;
+  font-size: clamp(38px, 9vw, 58px);
+  margin: 0 0 14px;
+  color: var(--ink);
+  line-height:1;
+}
+.title-accent{ color: var(--danger); }
+.title-small{ font-size: clamp(34px, 8vw, 46px); color: var(--danger); }
+.title-victory{ font-size: clamp(34px, 8vw, 46px); color: var(--grass-dark); }
+
+.desc{
+  font-size:16px;
+  line-height:1.55;
+  font-weight:600;
+  color: var(--ink);
+  margin: 0 0 20px;
+}
+.desc strong{ color: var(--danger); }
+
+.controls-hint{
+  background: rgba(95,174,62,0.12);
+  border: 2px dashed var(--grass-dark);
+  border-radius:14px;
+  padding:12px 16px;
+  margin-bottom:22px;
+  font-size:13px;
+  font-weight:700;
+  color: var(--grass-dark);
+}
+.hint-item{ margin:3px 0; }
+.key{
+  background: var(--ink);
+  color: var(--cream);
+  padding:2px 8px;
+  border-radius:6px;
+  font-family: var(--display-font);
+  font-size:12px;
+}
+
+.score-final{
+  font-family: var(--display-font);
+  font-size:20px;
+  font-weight:600;
+  margin-bottom:22px;
+  color: var(--ink);
+}
+#final-score{ color: var(--danger); }
+
+.dialogue-panel{
+  cursor:pointer;
+  max-width:620px;
+}
+.dialogue-text{
+  font-family: var(--display-font);
+  font-weight:600;
+  font-size: clamp(22px, 4vw, 30px);
+  line-height:1.45;
+  color: var(--ink);
+  margin: 4px 0 22px;
+}
+.dialogue-hint{
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.04em;
+  color: var(--grass-dark);
+  text-transform:uppercase;
+}
+
+.btn{
+  font-family: var(--display-font);
+  font-size:19px;
+  font-weight:600;
+  border:none;
+  border-radius:16px;
+  padding:14px 36px;
+  cursor:pointer;
+  transition: transform .08s ease, box-shadow .08s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary{
+  background: var(--sun);
+  color: var(--ink);
+  box-shadow: 0 6px 0 #C98F1F;
+}
+.btn-primary:hover{ transform: translateY(-1px); }
+.btn-primary:active{
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #C98F1F;
+}
+
+/* ---------- Virtual joystick (mobile) ---------- */
+#joystick-zone{
+  position:fixed;
+  left: max(26px, env(safe-area-inset-left));
+  bottom: max(26px, env(safe-area-inset-bottom));
+  z-index:11;
+  display:none;
+  touch-action: none;
+}
+#joystick-base{
+  width:128px;
+  height:128px;
+  border-radius:50%;
+  background: rgba(251,246,233,0.28);
+  border: 2px solid rgba(251,246,233,0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.08);
+  position:relative;
+  touch-action: none;
+}
+#joystick-knob{
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background: linear-gradient(160deg, #FFD873, var(--sun));
+  box-shadow: 0 4px 10px rgba(0,0,0,0.35), inset 0 -3px 4px rgba(0,0,0,0.15), inset 0 2px 3px rgba(255,255,255,0.5);
+  position:absolute;
+  top:50%; left:50%;
+  margin:-28px 0 0 -28px;
+  transition: transform .04s linear;
+  pointer-events:none;
+}
+
+@media (pointer: coarse){
+  #joystick-zone{ display:block; }
+}
+
+@media (max-width: 480px){
+  .panel{ padding: 26px 22px 24px; border-radius:22px; }
+  #speech-wrap{ top:78px; }
+  #speech-bubble{ font-size:14px; padding:10px 16px; }
+}
+
+@media (max-width: 380px){
+  #lives{ padding:6px 10px; gap:6px; }
+  .life-icon{ font-size:22px; }
+  #score{ padding:6px 12px; }
+  #score-value{ font-size:22px; }
+  #joystick-base{ width:104px; height:104px; }
+  #joystick-knob{ width:46px; height:46px; margin:-23px 0 0 -23px; }
+}
+
+@media (max-height: 480px) and (orientation: landscape){
+  #speech-wrap{ top:64px; }
+  #joystick-zone{ bottom: max(14px, env(safe-area-inset-bottom)); }
+}
+
+
+/* ---------- Radio John Deere — pozioma listwa w prawym dolnym rogu ----------
+   Cały rozmiar sterowany jedną zmienną --ru (1 jednostka = 1 "piksel" projektu).
+   Na dużych ekranach radio jest 4x większe niż bazowe 14 px; na mniejszych skaluje się w dół. */
+/* Rozmiar radia zależy od szerokości okna: ok. połowa szerokości ekranu (min. 1,6 px, max. 7 px na „piksel projektu”),
+   dzięki czemu na laptopie i w mniejszych oknach jest dobrze widoczne. */
+:root{ --radio-ru: clamp(1.6px, 0.5vw, 7px); }
+#car-radio{
+  --ru: var(--radio-ru);
+  position:fixed;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  right: max(14px, env(safe-area-inset-right));
+  z-index:9;
+  font-family: var(--body-font);
+  user-select:none;
+}
+.radio-body{
+  display:flex;
+  align-items:center;
+  gap:calc(var(--ru) * 4);
+  height:calc(var(--ru) * 14);
+  padding:0 calc(var(--ru) * 3);
+  background:#2F6B24;
+  border:2px solid #143A0E;
+  border-radius:calc(var(--ru) * 3);
+  box-shadow: 0 4px 10px rgba(0,0,0,.4);
+  box-sizing:content-box;
+}
+.radio-power{
+  width:calc(var(--ru) * 8); height:calc(var(--ru) * 8); padding:0; flex:none;
+  border-radius:50%;
+  background:#0f1f0b;
+  border:2px solid #000;
+  box-sizing:border-box;
+  cursor:pointer; touch-action:manipulation;
+}
+.radio-power.on{ background:#7CFF7C; box-shadow:0 0 8px rgba(124,255,124,.9); }
+.radio-brand{
+  font-size:calc(var(--ru) * 5); font-weight:800; letter-spacing:.1em; line-height:1;
+  color:#FFDE00; white-space:nowrap;
+}
+.radio-display{
+  width:calc(var(--ru) * 58); height:calc(var(--ru) * 10); flex:none;
+  display:flex; align-items:center;
+  padding:0 calc(var(--ru) * 3);
+  overflow:hidden;
+  background:#0d1a09;
+  border-radius:calc(var(--ru) * 2);
+}
+#radio-text{
+  font-family:'Courier New',monospace;
+  font-weight:700;
+  font-size:calc(var(--ru) * 7);
+  line-height:1;
+  color:#FFDE00;
+  white-space:nowrap;
+}
+#radio-text.scroll{ animation: radio-scroll 8s linear infinite; padding-left:100%; }
+@keyframes radio-scroll{ from{ transform: translateX(0); } to{ transform: translateX(-100%); } }
+.radio-presets{ display:flex; gap:calc(var(--ru) * 2); }
+.preset{
+  width:calc(var(--ru) * 10); height:calc(var(--ru) * 10); padding:0;
+  background:#0d1a09;
+  color:#FFDE00;
+  border:2px solid #000; border-radius:calc(var(--ru) * 2);
+  box-sizing:border-box;
+  font-size:calc(var(--ru) * 6); font-weight:800; line-height:1;
+  cursor:pointer; touch-action:manipulation;
+}
+.preset:active{ transform:translateY(1px); }
+.preset.active{ background:#FFDE00; color:#143A0E; }
+@media (pointer: coarse){
+  /* na telefonach joystick jest w lewym dolnym rogu — radio stoi nad nim, żeby się nie nakładały */
+  #car-radio{ bottom: max(165px, env(safe-area-inset-bottom)); }
+}
+
+/* ---------- Wybór przynęty na kunę ---------- */
+.bait-panel{ max-width:620px; }
+.bait-options{
+  display:flex;
+  gap:14px;
+  justify-content:center;
+  margin-top:6px;
+}
+.bait-options.locked{ pointer-events:none; }
+.bait-btn{
+  flex:1 1 0;
+  min-width:0;
+  background:#fff;
+  border:4px solid var(--wood);
+  border-radius:18px;
+  padding:14px 6px 12px;
+  cursor:pointer;
+  font-family: var(--display-font);
+  box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .08s ease;
+}
+.bait-btn:hover{ transform: translateY(-2px); }
+.bait-btn:active{ transform: translateY(3px); }
+.bait-icon{ display:block; font-size:52px; line-height:1.1; }
+.bait-label{ display:block; margin-top:6px; font-size:18px; font-weight:600; color: var(--ink); }
+.bait-btn.wrong{ animation: bait-wrong .8s ease; }
+.bait-btn.correct{ background:#B9E4A1; border-color: var(--grass-dark); }
+@keyframes bait-wrong{
+  0%, 100%{ background:#fff; border-color: var(--wood); }
+  10%, 50%{ background:#F2806A; border-color: var(--danger); }
+  30%, 70%{ background:#fff; border-color: var(--wood); }
+}
+@media (max-width: 480px){
+  .bait-options{ gap:8px; }
+  .bait-icon{ font-size:40px; }
+  .bait-label{ font-size:15px; }
+}
+
+
+/* ---------- Podpowiedź: podpinanie przyczepki ---------- */
+#hitch-hint{
+  position:fixed;
+  left:50%;
+  bottom: calc(var(--radio-ru) * 14 + 44px);
+  transform: translateX(-50%);
+  z-index:11;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  max-width: min(460px, 92vw);
+  background: var(--cream);
+  border:3px solid var(--wood);
+  border-radius:16px;
+  padding:10px 14px;
+  font-family: var(--body-font);
+  font-weight:800;
+  font-size:14px;
+  color: var(--ink);
+  box-shadow: 0 5px 0 rgba(0,0,0,0.18);
+}
+#hitch-hint.ready{ background: var(--sun); }
+#hitch-btn{
+  border:none;
+  cursor:pointer;
+  font-size:18px;
+  padding:6px 14px;
+  touch-action: manipulation;
+}
+@media (pointer: coarse){
+  #hitch-hint{ bottom: calc(165px + var(--radio-ru) * 14 + 30px); }
+}
+
+
+/* ---------- Zadanie 2: wybór narzędzi ---------- */
+.tools-panel{ max-width:860px; padding:24px 26px 20px; max-height:96vh; overflow:auto; }
+.tools-title{
+  font-family: var(--display-font);
+  font-weight:600;
+  font-size:20px;
+  line-height:1.3;
+  margin: 2px 0 14px;
+  color: var(--ink);
+}
+.tools-fields{
+  display:grid;
+  grid-template-columns: 1fr 1fr;   /* dwa prostokąty obok siebie, takiej samej wielkości */
+  gap:16px;
+  text-align:left;
+}
+.tools-field{ min-width:0; }
+.tools-field-label{
+  font-weight:800; font-size:13px; letter-spacing:.06em; text-transform:uppercase;
+  color: var(--grass-dark); margin-bottom:6px;
+}
+.tools-drop{
+  height:318px;
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 92px;
+  gap:8px;
+  align-content:start;
+  padding:10px;
+  border:3px dashed var(--grass-dark);
+  border-radius:16px;
+  background: rgba(95,174,62,0.08);
+  transition: background .12s, border-color .12s;
+}
+.tools-drop-target{ background: rgba(255,193,69,0.16); border-color: var(--wood); }
+.tools-drop.hover{ background: rgba(95,174,62,0.28); }
+.tools-drop.wrong{ animation: tools-wrong .7s ease; }
+.tools-drop.done{ background:#B9E4A1; border-color: var(--grass-dark); }
+@keyframes tools-wrong{
+  0%, 100%{ background: rgba(255,193,69,0.16); border-color: var(--wood); }
+  15%, 55%{ background:#F2806A; border-color: var(--danger); }
+  35%, 75%{ background: rgba(255,193,69,0.16); border-color: var(--wood); }
+}
+.tool-card{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+  padding:6px 4px;
+  background:#fff;
+  border:3px solid var(--wood);
+  border-radius:12px;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.18);
+  cursor:grab;
+  user-select:none; -webkit-user-select:none;
+  touch-action:none;
+  text-align:center;
+  min-width:0;
+}
+.tool-card.dragging{ opacity:.3; }
+.tool-icon{ width:34px; height:34px; flex:none; pointer-events:none; }
+.tool-label{
+  font-family: var(--body-font); font-weight:800; font-size:15px; line-height:1.1;
+  color: var(--ink); pointer-events:none;
+}
+.tool-card.wrong{ animation: tool-wrong .7s ease; }
+@keyframes tool-wrong{
+  0%, 100%{ background:#fff; border-color: var(--wood); transform:none; }
+  15%, 55%{ background:#F2806A; border-color: var(--danger); transform: translateX(-4px); }
+  35%, 75%{ background:#fff; border-color: var(--wood); transform: translateX(4px); }
+}
+.tool-card.pop{ animation: tool-pop .25s ease; }
+@keyframes tool-pop{ 0%{ transform: scale(.8); } 100%{ transform: scale(1); } }
+.tool-ghost{
+  position:fixed; z-index:40; pointer-events:none;
+  width:110px; height:88px;
+  transform: translate(-50%, -50%) scale(1.06) rotate(-3deg);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.35);
+}
+.tools-hint{
+  margin-top:12px;
+  font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
+  color: var(--grass-dark);
+}
+@media (max-width: 700px){
+  .tools-panel{ padding:16px 12px 14px; }
+  .tools-fields{ gap:8px; }
+  .tools-drop{ height:282px; grid-auto-rows: 84px; gap:5px; padding:6px; }
+  .tool-icon{ width:30px; height:30px; }
+  .tool-label{ font-size:12px; }
+}
+
+/* ---------- Pasek rozbiórki ---------- */
+#demolition{
+  position:fixed;
+  left:50%; top:50%;
+  transform: translate(-50%, -50%);
+  z-index:22;
+  width:min(460px, 88vw);
+  background: var(--cream);
+  border:5px solid var(--wood);
+  border-radius:24px;
+  padding:22px 26px 24px;
+  text-align:center;
+  box-shadow: 0 12px 0 rgba(0,0,0,0.2), 0 18px 36px rgba(0,0,0,0.35);
+}
+.demo-text{
+  font-family: var(--display-font);
+  font-weight:600;
+  font-size: clamp(20px, 4vw, 26px);
+  color: var(--ink);
+  margin-bottom:16px;
+  animation: demo-blink 2.4s ease-in-out infinite;
+}
+@keyframes demo-blink{
+  0%, 100%{ opacity:1; }
+  50%{ opacity:.2; }
+}
+.demo-bar{
+  height:26px;
+  border:3px solid var(--wood);
+  border-radius:14px;
+  background:#fff;
+  overflow:hidden;
+}
+#demo-fill{
+  height:100%;
+  width:0%;
+  background: linear-gradient(180deg, #8AD35F, var(--grass-dark));
+}

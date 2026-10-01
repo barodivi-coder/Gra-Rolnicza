@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>GRA ROLNICZA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=57">
+</head>
+<body>
+
+<canvas id="game-canvas"></canvas>
+
+<!-- Vignette flash on losing a life -->
+<div id="danger-flash"></div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="lives">
+    <span class="life-icon">🐱</span>
+    <span class="life-icon">🐱</span>
+    <span class="life-icon">🐱</span>
+  </div>
+  <div id="score">
+    <span id="score-label">Zebrane przedmioty</span>
+    <span id="score-value">0</span>
+  </div>
+</div>
+
+<!-- Speech bubble -->
+<div id="speech-wrap">
+  <div id="speech-bubble"></div>
+</div>
+
+<!-- Start screen -->
+<div id="start-screen" class="overlay">
+  <div class="panel">
+    <div class="eyebrow">Podkarpacka symulacja porządku</div>
+    <h1 class="title">GRA <span class="title-accent">ROLNICZA</span></h1>
+    <p class="desc">
+      Pomóż Olkowi posprzątać łąkę z niepożądanych przedmiotów,
+      żeby mógł wywieźć je na płytę obornikową.
+      <br><strong>Ale uważaj! Nie przejedź kota!</strong>
+    </p>
+    <div class="controls-hint">
+      <div class="hint-item"><span class="key">W A S D</span> / <span class="key">strzałki</span> — jazda traktorem (komputer)</div>
+      <div class="hint-item">Joystick na dole ekranu — jazda traktorem (telefon)</div>
+      <div class="hint-item">Zbieraj dobre przedmioty 👍 · Omijaj kota 🐱</div>
+    </div>
+    <button id="start-btn" class="btn btn-primary">Ruszaj w pole</button>
+  </div>
+</div>
+
+<!-- Game over screen -->
+<div id="gameover-screen" class="overlay hidden">
+  <div class="panel">
+    <div class="eyebrow">Koniec zmiany</div>
+    <h1 class="title title-small">GAME OVER</h1>
+    <p class="desc">
+      Jak zwykle przejechaliśmy wszystkie lelawe koty!
+      Ale nie martw się, będą nowe!
+    </p>
+    <div class="score-final">
+      Wynik: <span id="final-score">0</span> zebranych przedmiotów
+    </div>
+    <button id="restart-btn" class="btn btn-primary">Zagraj ponownie</button>
+  </div>
+</div>
+
+<!-- Victory screen (koniec gry po wykonaniu wszystkich prac) -->
+<div id="victory-screen" class="overlay hidden">
+  <div class="panel">
+    <div class="eyebrow">Koniec zmiany</div>
+    <h1 class="title title-victory">Brawo!</h1>
+    <p class="desc">
+      <strong>Wykonałeś wszystkie prace rolnicze!</strong><br>
+      Spędziłeś już sporo czasu przy komputerze, więc teraz czas na inne zajęcia! Powodzenia!
+    </p>
+    <div class="score-final">
+      Wynik: <span id="victory-score">0</span> zebranych przedmiotów
+    </div>
+    <button id="victory-restart-btn" class="btn btn-primary">Zagraj ponownie</button>
+  </div>
+</div>
+
+<!-- Big centered dialogue modal (pauses the game, advance with SPACE or tap) -->
+<div id="dialogue-modal" class="overlay hidden">
+  <div class="panel dialogue-panel">
+    <p id="dialogue-text" class="dialogue-text"></p>
+    <div class="dialogue-hint"><span class="key">SPACJA</span> lub dotknij, aby kontynuować</div>
+  </div>
+</div>
+
+<!-- Wybór przynęty na kunę (pauzuje grę) -->
+<div id="bait-modal" class="overlay hidden">
+  <div class="panel bait-panel">
+    <p class="dialogue-text">Olek: Trzeba ją zwabić czymś do klatki. Co powinno ją skusić?</p>
+    <div id="bait-options" class="bait-options">
+      <button class="bait-btn" data-bait="chocolate"><span class="bait-icon">🍫</span><span class="bait-label">Czekolada</span></button>
+      <button class="bait-btn" data-bait="berries"><span class="bait-icon">🫐</span><span class="bait-label">Jagody</span></button>
+      <button class="bait-btn" data-bait="chips"><span class="bait-icon">🍟</span><span class="bait-label">Chipsy</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Podpowiedź do podpinania przyczepki -->
+<div id="hitch-hint" class="hidden">
+  <span id="hitch-hint-text">Cofnij do przyczepki (obok busa) i naciśnij P</span>
+  <button id="hitch-btn" class="key" type="button">P</button>
+</div>
+
+<!-- Zadanie 2: wybór narzędzi do demontażu placu zabaw -->
+<div id="tools-modal" class="overlay hidden">
+  <div class="panel tools-panel">
+    <div class="eyebrow">Zadanie</div>
+    <p class="tools-title">Wybierz narzędzia, które będą przydatne w demontażu placu zabaw.</p>
+    <div class="tools-fields">
+      <div class="tools-field">
+        <div class="tools-field-label">Przedmioty do wyboru</div>
+        <div id="tools-source" class="tools-drop"></div>
+      </div>
+      <div class="tools-field">
+        <div class="tools-field-label">Skrzynka z narzędziami</div>
+        <div id="tools-target" class="tools-drop tools-drop-target"></div>
+      </div>
+    </div>
+    <div class="tools-hint">Przeciągnij lub dotknij przedmiot, aby przenieść go na drugie pole</div>
+  </div>
+</div>
+
+<!-- Pasek rozbiórki placu zabaw -->
+<div id="demolition" class="hidden">
+  <div class="demo-text">Trwa rozbiórka placu zabaw.</div>
+  <div class="demo-bar"><div id="demo-fill"></div></div>
+</div>
+
+<!-- Touch controls (mobile) — virtual joystick -->
+<div id="joystick-zone">
+  <div id="joystick-base">
+    <div id="joystick-knob"></div>
+  </div>
+</div>
+
+
+<!-- Radio samochodowe w stylu lat 90. -->
+<div id="car-radio">
+  <div class="radio-body">
+    <button id="radio-power" class="radio-power" title="Wł/Wył" aria-label="Włącz/wyłącz radio"></button>
+    <span class="radio-brand">JOHN DEERE RADIO</span>
+    <div class="radio-display"><span id="radio-text">-- OFF --</span></div>
+    <div class="radio-presets">
+      <button class="preset" data-station="0">1</button>
+      <button class="preset" data-station="1">2</button>
+      <button class="preset" data-station="2">3</button>
+      <button class="preset" data-station="3">4</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="game.js?v=60"></script>
+</body>
+</html>
